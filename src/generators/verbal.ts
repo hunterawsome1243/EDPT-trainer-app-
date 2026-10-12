@@ -1,4 +1,4 @@
-import type { Built, Difficulty, RuleFamily } from '../types'
+import type { Difficulty, RuleFamily } from '../types'
 import { makeGenerator, sample, uniqueDistractors } from './common'
 
 /*
