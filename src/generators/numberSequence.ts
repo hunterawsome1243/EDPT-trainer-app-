@@ -46,7 +46,7 @@ export const NUMBER_FAMILIES: RuleFamily[] = [
       const terms = Array.from({ length: n }, (_, i) => start + i * step)
       return finish(rng, d, {
         terms,
-        pattern: `Each term increases by ${step} (a constant difference).`,
+        pattern: `Each term ${step > 0 ? 'increases' : 'decreases'} by ${Math.abs(step)} (a constant difference).`,
         howToSpot: 'Subtract neighbouring terms. If every difference is the same number, add it once more.',
         trap: 'Adding the wrong step (one more or less than the real one), or stopping one term early.',
         plausible: (c) => [c + step, c - step, c + step + 1, c + step - 1, c + 2 * step],
@@ -250,7 +250,7 @@ export const NUMBER_FAMILIES: RuleFamily[] = [
         }
       }
       const terms = Array.from({ length: n }, (_, i) => f(i))
-      const desc = kind === 'nk+c' ? `${k}n ${c >= 0 ? '+' : '−'} ${Math.abs(c)}` : kind.replace(/n/g, 'n')
+      const desc = kind === 'nk+c' ? (c === 0 ? `${k}n` : `${k}n ${c > 0 ? '+' : '−'} ${Math.abs(c)}`) : kind
       return finish(rng, d, {
         terms,
         pattern: `The n-th term equals ${desc}, where n is its position (1, 2, 3, …).`,

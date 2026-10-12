@@ -1,8 +1,12 @@
 import type { Difficulty, Question, QuestionType } from '../types'
 import { numberSequence } from './numberSequence'
 import { letterSequence } from './letterSequence'
+import { figure } from './figure'
+import { arithmetic } from './arithmetic'
+import { logic } from './logic'
+import { verbal } from './verbal'
 
-export const ALL_GENERATORS = [numberSequence, letterSequence]
+export const ALL_GENERATORS = [numberSequence, letterSequence, figure, arithmetic, logic, verbal]
 
 export const GENERATORS: Partial<Record<QuestionType, (typeof ALL_GENERATORS)[number]>> = Object.fromEntries(
   ALL_GENERATORS.map((g) => [g.type, g]),
