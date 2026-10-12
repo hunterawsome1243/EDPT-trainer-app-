@@ -1,6 +1,16 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
-:root { color-scheme: light dark; }
+/* Page-level tokens so the body always has an explicit ground in both themes, including when the
+   page is hosted inside a viewer that sets data-theme on the root element. */
+:root { --bg: #f8fafc; --fg: #0f172a; color-scheme: light; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #020617; --fg: #f1f5f9; color-scheme: dark; }
+}
+:root[data-theme="dark"], :root.dark { --bg: #020617; --fg: #f1f5f9; color-scheme: dark; }
+:root[data-theme="light"]:not(.dark) { --bg: #f8fafc; --fg: #0f172a; color-scheme: light; }
+html, body { background: var(--bg); color: var(--fg); }
+
 html.large { font-size: 118%; }
 html.reduced-motion * { animation: none !important; transition: none !important; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }

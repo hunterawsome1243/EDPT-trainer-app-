@@ -22,7 +22,7 @@ export function App() {
         </a>
         <div className="mx-auto flex max-w-6xl">
           {!focus && (
-            <nav aria-label="Main" className="sticky top-0 hidden h-dvh w-48 shrink-0 flex-col gap-1 border-r border-slate-200 p-3 md:flex dark:border-slate-800">
+            <nav aria-label="Main" className="sticky hidden h-dvh w-48 shrink-0 flex-col gap-1 border-r border-slate-200 p-3 md:flex dark:border-slate-800" style={{ top: 'env(safe-area-inset-top, 0px)' }}>
               <div className="mb-4 px-2 text-lg font-bold tracking-tight text-sky-700 dark:text-sky-400">EDPT Trainer</div>
               {NAV.map((n) => (
                 <NavLink

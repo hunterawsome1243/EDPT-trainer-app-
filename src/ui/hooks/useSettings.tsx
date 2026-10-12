@@ -22,19 +22,27 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     setSettings((s) => ({ ...s, [key]: value }))
     await saveSetting(key, value)
   }, [])
-  // apply theme / text size / motion to <html>
+  // Apply theme / text size / motion to <html>. With the "system" setting the page follows the
+  // host: a data-theme attribute set by an embedding viewer wins, then the OS preference.
   useEffect(() => {
     const root = document.documentElement
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
     const apply = () => {
-      const dark = settings.theme === 'dark' || (settings.theme === 'system' && mq.matches)
+      const host = root.getAttribute('data-theme')
+      const systemDark = host === 'dark' ? true : host === 'light' ? false : mq.matches
+      const dark = settings.theme === 'dark' || (settings.theme === 'system' && systemDark)
       root.classList.toggle('dark', dark)
       root.classList.toggle('large', settings.largeText)
       root.classList.toggle('reduced-motion', settings.reducedMotion)
     }
     apply()
     mq.addEventListener('change', apply)
-    return () => mq.removeEventListener('change', apply)
+    const obs = new MutationObserver(apply)
+    obs.observe(root, { attributes: true, attributeFilter: ['data-theme'] })
+    return () => {
+      mq.removeEventListener('change', apply)
+      obs.disconnect()
+    }
   }, [settings.theme, settings.largeText, settings.reducedMotion])
   const value = useMemo(() => ({ settings, loaded, update }), [settings, loaded, update])
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>
