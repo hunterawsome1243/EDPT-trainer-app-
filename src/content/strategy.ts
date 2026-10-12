@@ -3,9 +3,9 @@ import { EXAM, SECONDS_PER_QUESTION } from './reference'
 
 const spq = Math.round(SECONDS_PER_QUESTION)
 
-export const STRATEGY: { title: string; sections: LessonSection[] } = {
-  title: 'Test strategy',
-  sections: [
+/** The guide adapts its guessing advice to the scoring model the user selected in Settings. */
+export function strategySections(guessingPenalty: boolean = EXAM.guessingPenalty): LessonSection[] {
+  return [
     {
       heading: 'The pacing plan',
       paragraphs: [
@@ -29,9 +29,9 @@ export const STRATEGY: { title: string; sections: LessonSection[] } = {
     {
       heading: 'Guessing',
       paragraphs: [
-        EXAM.guessingPenalty
-          ? 'The scoring model configured in this app subtracts a fraction for wrong answers. Guess only when you can eliminate at least one option; leave an item blank when every option looks equally likely.'
-          : 'Under the scoring model configured in this app there is no penalty for wrong answers, so never leave an item blank. If time is nearly up, fill in every remaining item with the same letter. You can change the scoring model in Settings; this advice updates with it.',
+        guessingPenalty
+          ? 'The scoring model selected in Settings subtracts a fraction for wrong answers. Guess only when you can eliminate at least one option; leave an item blank when every option looks equally likely.'
+          : 'Under the scoring model selected in Settings there is no penalty for wrong answers, so never leave an item blank. If time is nearly up, fill in every remaining item with the same letter. You can change the scoring model in Settings; this advice updates with it.',
         'Whatever the real policy turns out to be, confirm it on test day from the instructions you are given.',
       ],
     },
@@ -62,5 +62,7 @@ export const STRATEGY: { title: string; sections: LessonSection[] } = {
       heading: 'The week before',
       paragraphs: ['Taper. Take your last full simulation three or four days out, spend the remaining days on spaced review of missed rules and short mental-math drills, and do nothing heavy the day before.'],
     },
-  ],
+  ]
 }
+
+export const STRATEGY_TITLE = 'Test strategy'
