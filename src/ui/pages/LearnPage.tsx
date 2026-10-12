@@ -1,4 +1,4 @@
-import { useLiveQuery } from 'dexie-react-hooks'
+import { useSafeLiveQuery as useLiveQuery } from '../hooks/useSafeLiveQuery'
 import { Link } from 'react-router-dom'
 import { db } from '../../db/db'
 import { LESSONS, LESSON_ORDER } from '../../content/lessons'
@@ -29,7 +29,7 @@ export function LearnPage() {
               <Link to={`/learn/${t}`} className="block rounded-xl border border-slate-200 bg-white p-4 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-500 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800">
                 <div className="flex items-center justify-between">
                   <span className="font-semibold">{i + 1}. {l.title}</span>
-                  <span className="text-xs text-slate-500">{p?.masteryPassedAt ? `Tier ${p.tier} unlocked` : p?.readAt ? 'Read' : 'Not started'}</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">{p?.masteryPassedAt ? `Tier ${p.tier} unlocked` : p?.readAt ? 'Read' : 'Not started'}</span>
                 </div>
                 <p className="mt-1 line-clamp-2 text-sm text-slate-600 dark:text-slate-400">{l.intro}</p>
               </Link>

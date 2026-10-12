@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useLiveQuery } from 'dexie-react-hooks'
+import { useSafeLiveQuery as useLiveQuery } from '../hooks/useSafeLiveQuery'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { db } from '../../db/db'
 import { recentMistakes } from '../../db/queries'
@@ -63,7 +63,7 @@ export function PracticePage() {
             </label>
           ))}
         </div>
-        {cfg.ruleId && <p className="mt-2 text-xs text-slate-500">Drilling a single rule: <span className="font-mono">{cfg.ruleId}</span>. <button className="underline" onClick={() => setCfg((c) => ({ ...c, ruleId: undefined }))}>Clear</button></p>}
+        {cfg.ruleId && <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Drilling a single rule: <span className="font-mono">{cfg.ruleId}</span>. <button className="underline" onClick={() => setCfg((c) => ({ ...c, ruleId: undefined }))}>Clear</button></p>}
       </Card>
       <Card>
         <div className="grid gap-4 sm:grid-cols-2">

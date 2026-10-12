@@ -34,7 +34,7 @@ export function QuestionView({ question: q, chosen, onChoose, reveal = false, di
   return (
     <div className="space-y-4">
       {index !== undefined && total !== undefined && (
-        <div className="text-xs font-medium text-slate-500">
+        <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
           Question {index + 1} of {total}
         </div>
       )}
@@ -50,8 +50,8 @@ export function QuestionView({ question: q, chosen, onChoose, reveal = false, di
           {q.figures.map((f, i) => (
             <div key={i} className="flex items-center gap-2">
               <div className="flex flex-col items-center gap-1">
-                <Figure spec={f} size={88} />
-                {q.figureLayout === 'analogy' && <span className="text-xs text-slate-500">{['A', 'B', 'C'][i]}</span>}
+                <Figure spec={f} size={88} className="w-16! sm:w-22!" />
+                {q.figureLayout === 'analogy' && <span className="text-xs text-slate-500 dark:text-slate-400">{['A', 'B', 'C'][i]}</span>}
               </div>
               {q.figureLayout === 'analogy' && i === 0 && <span className="text-slate-400">→</span>}
               {q.figureLayout === 'analogy' && i === 1 && <span className="px-2 text-slate-400">::</span>}
@@ -59,7 +59,7 @@ export function QuestionView({ question: q, chosen, onChoose, reveal = false, di
               {q.figureLayout === 'sequence' && i < q.figures!.length - 1 && <span className="text-slate-400">,</span>}
             </div>
           ))}
-          {q.figureLayout === 'sequence' && <div className="flex h-[88px] w-[88px] items-center justify-center rounded-md border border-dashed border-slate-400 text-2xl text-slate-400">?</div>}
+          {q.figureLayout === 'sequence' && <div className="flex aspect-square w-16 items-center justify-center rounded-md border border-dashed border-slate-400 text-2xl text-slate-500 sm:w-22 dark:text-slate-400">?</div>}
         </div>
       )}
       <div role="radiogroup" aria-label="Answer options" className={isFigureOptions ? 'grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5' : 'grid gap-2'}>
@@ -85,7 +85,7 @@ export function QuestionView({ question: q, chosen, onChoose, reveal = false, di
               className={`flex min-h-12 items-center gap-3 rounded-lg border-2 p-2 text-left text-base transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500 disabled:cursor-default ${cls} ${isFigureOptions ? 'flex-col' : ''}`}
             >
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-200 text-sm font-bold dark:bg-slate-700">{o.id}</span>
-              {o.figure ? <Figure spec={o.figure} size={80} /> : <span className={q.type === 'number-sequence' || q.type === 'letter-sequence' ? 'font-mono text-lg' : ''}>{o.text}</span>}
+              {o.figure ? <Figure spec={o.figure} size={80} className="w-18! sm:w-20!" /> : <span className={q.type === 'number-sequence' || q.type === 'letter-sequence' ? 'font-mono text-lg' : ''}>{o.text}</span>}
             </button>
           )
         })}

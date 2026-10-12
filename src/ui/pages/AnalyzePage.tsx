@@ -1,4 +1,4 @@
-import { useLiveQuery } from 'dexie-react-hooks'
+import { useSafeLiveQuery as useLiveQuery } from '../hooks/useSafeLiveQuery'
 import { dailyTrend, examSessions, ruleAggregates } from '../../db/queries'
 import { computeReadiness, targetPercentFor } from '../../engine/readiness'
 import { CUTOFFS, SECONDS_PER_QUESTION } from '../../content/reference'
@@ -7,7 +7,7 @@ import { useSettings } from '../hooks/useSettings'
 import { Card, LinkButton, PageTitle, Progress } from '../components/ui'
 
 function LineChart({ points, yLabel, max = 1, fmt, emptyText = 'Need at least two days of data.' }: { points: { x: string; y: number }[]; yLabel: string; max?: number; fmt: (y: number) => string; emptyText?: string }) {
-  if (points.length < 2) return <p className="text-sm text-slate-500">{emptyText}</p>
+  if (points.length < 2) return <p className="text-sm text-slate-500 dark:text-slate-400">{emptyText}</p>
   const W = 320, H = 120, P = 24
   const xs = (i: number) => P + (i / (points.length - 1)) * (W - 2 * P)
   const ys = (y: number) => H - P - (Math.min(y, max) / max) * (H - 2 * P)
@@ -48,7 +48,7 @@ export function AnalyzePage() {
       </Card>
       <div className="grid gap-4 md:grid-cols-2">
         <Card><h2 className="mb-2 font-semibold">Daily accuracy</h2><LineChart points={trend.map((d) => ({ x: d.date, y: d.accuracy }))} yLabel="Accuracy" fmt={(y) => `${Math.round(y * 100)}%`} /></Card>
-        <Card><h2 className="mb-2 font-semibold">Seconds per question</h2><LineChart points={trend.map((d) => ({ x: d.date, y: d.avgSec }))} yLabel="Seconds per question" max={120} fmt={(y) => `${Math.round(y)}s`} /><p className="text-xs text-slate-500">Target: under {Math.round(SECONDS_PER_QUESTION)}s.</p></Card>
+        <Card><h2 className="mb-2 font-semibold">Seconds per question</h2><LineChart points={trend.map((d) => ({ x: d.date, y: d.avgSec }))} yLabel="Seconds per question" max={120} fmt={(y) => `${Math.round(y)}s`} /><p className="text-xs text-slate-500 dark:text-slate-400">Target: under {Math.round(SECONDS_PER_QUESTION)}s.</p></Card>
       </div>
       {exams.length > 0 && (
         <Card>
@@ -58,7 +58,7 @@ export function AnalyzePage() {
       )}
       <Card>
         <h2 className="mb-2 font-semibold">Rule heatmap</h2>
-        {aggs.length === 0 ? <p className="text-sm text-slate-500">No attempts yet.</p> : QUESTION_TYPES.map((t) => {
+        {aggs.length === 0 ? <p className="text-sm text-slate-500 dark:text-slate-400">No attempts yet.</p> : QUESTION_TYPES.map((t) => {
           const rs = aggs.filter((r) => r.type === t).sort((a, b) => a.correct / a.total - b.correct / b.total)
           if (!rs.length) return null
           return (

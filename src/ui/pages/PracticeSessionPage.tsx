@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { db } from '../../db/db'
 import { autoDifficulty, recentMistakes, recordAttempt, ruleAggregates } from '../../db/queries'
 import { generateQuestion, questionFromId } from '../../generators'
@@ -15,24 +15,33 @@ import { Explanation } from '../components/Explanation'
 import { Countdown, Stopwatch } from '../components/Timer'
 import { ScratchPad } from '../components/ScratchPad'
 import { useSettings } from '../hooks/useSettings'
+import { useFocusMode } from '../hooks/useFocus'
 
+/** Builds the question list. Database reads are optional: without storage, new questions still generate. */
 async function buildQuestions(cfg: PracticeConfig): Promise<Question[]> {
   const out: Question[] = []
-  const d = async (t: QuestionType): Promise<Difficulty> => (cfg.difficulty === 'auto' ? autoDifficulty(t) : cfg.difficulty)
+  const safe = async <T,>(p: () => Promise<T>, fallback: T): Promise<T> => {
+    try {
+      return await p()
+    } catch {
+      return fallback
+    }
+  }
+  const d = async (t: QuestionType): Promise<Difficulty> => (cfg.difficulty === 'auto' ? safe(() => autoDifficulty(t), 2 as Difficulty) : cfg.difficulty)
   if (cfg.source === 'mistakes') {
-    const m = await recentMistakes(cfg.count)
+    const m = await safe(() => recentMistakes(cfg.count), [] as Attempt[])
     for (const a of m) {
       try { out.push(questionFromId(a.questionId)) } catch { /* rule removed */ }
     }
   } else if (cfg.source === 'review') {
-    const due = dueRules(await db.reviews.toArray(), Date.now())
-    const keys = due.length ? due.map((r) => r.key) : []
+    const due = dueRules(await safe(() => db.reviews.toArray(), []), Date.now())
+    const keys = due.map((r) => r.key)
     for (let i = 0; keys.length && out.length < cfg.count; i++) {
       const [t, rule] = keys[i % keys.length]!.split('/') as [QuestionType, string]
       out.push(generateQuestion(t, randomSeed(), await d(t), rule))
     }
   } else if (cfg.source === 'weak') {
-    const aggs = (await ruleAggregates()).filter((r) => cfg.types.includes(r.type) && r.total >= 2).sort((a, b) => a.correct / a.total - b.correct / b.total)
+    const aggs = (await safe(ruleAggregates, [])).filter((r) => cfg.types.includes(r.type) && r.total >= 2).sort((a, b) => a.correct / a.total - b.correct / b.total)
     const weak = aggs.slice(0, 6)
     for (let i = 0; weak.length && out.length < cfg.count; i++) {
       const r = weak[i % weak.length]!
@@ -54,43 +63,67 @@ export function PracticeSessionPage() {
   const navigate = useNavigate()
   const loc = useLocation()
   const cfg = loc.state as PracticeConfig | null
-  const { settings } = useSettings()
+  const { settings, storageOk } = useSettings()
   const [qs, setQs] = useState<Question[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const [i, setI] = useState(0)
   const [chosen, setChosen] = useState<string | null>(null)
   const [revealed, setRevealed] = useState(false)
+  const [committing, setCommitting] = useState(false)
   const [attempts, setAttempts] = useState<Attempt[]>([])
+  const [saveFailed, setSaveFailed] = useState(false)
   const [scratch, setScratch] = useState('')
   const [startedAt, setStartedAt] = useState(Date.now())
   const sessionId = useRef<number | undefined>(undefined)
   const sessionStart = useRef(Date.now())
+  const inFlight = useRef(false)
 
   useEffect(() => {
     if (!cfg) { navigate('/practice', { replace: true }); return }
-    buildQuestions(cfg).then((q) => { setQs(q); setStartedAt(Date.now()) })
-    db.sessions.add({ mode: cfg.timing === 'per-question' ? 'timed-practice' : 'practice', startedAt: Date.now(), questionCount: cfg.count, correctCount: 0, totalTimeMs: 0, byType: {} }).then((id) => { sessionId.current = id })
+    let cancelled = false
+    buildQuestions(cfg)
+      .then((q) => { if (!cancelled) { setQs(q); setStartedAt(Date.now()) } })
+      .catch((e: unknown) => { if (!cancelled) setError((e as Error).message || 'Could not build the question list.') })
+    return () => { cancelled = true }
   }, [cfg, navigate])
 
   const q = qs?.[i]
   const done = qs !== null && i >= qs.length
+  useFocusMode(!!q && !done)
 
   const commit = useCallback(async (choice: string | null) => {
-    if (!q || revealed) return
-    const a = await recordAttempt(q, choice, Date.now() - startedAt, sessionId.current)
+    // Synchronous guard: a second click or Enter while the first write is in flight must not record twice.
+    if (!q || revealed || inFlight.current) return
+    inFlight.current = true
+    setCommitting(true)
+    const timeMs = Date.now() - startedAt
+    let a: Attempt
+    try {
+      if (sessionId.current === undefined && storageOk) {
+        // The session row is created lazily so an abandoned session leaves nothing behind.
+        sessionId.current = await db.sessions.add({ mode: cfg?.timing === 'per-question' ? 'timed-practice' : 'practice', startedAt: sessionStart.current, questionCount: qs?.length ?? 0, correctCount: 0, totalTimeMs: 0, byType: {} }).catch(() => undefined)
+      }
+      a = await recordAttempt(q, choice, timeMs, sessionId.current)
+    } catch {
+      setSaveFailed(true)
+      a = { questionId: q.id, type: q.type, ruleId: q.ruleId, difficulty: q.difficulty, correct: choice !== null && choice === q.correctOptionId, timeMs, chosenOptionId: choice, at: Date.now() }
+    }
     setAttempts((x) => [...x, a])
     setRevealed(true)
+    setCommitting(false)
     if (!cfg?.instantFeedback) {
       setI((x) => x + 1); setChosen(null); setRevealed(false); setStartedAt(Date.now())
+      inFlight.current = false
     }
-  }, [q, revealed, startedAt, cfg])
+  }, [q, revealed, startedAt, cfg, qs, storageOk])
 
-  const next = () => { setI((x) => x + 1); setChosen(null); setRevealed(false); setStartedAt(Date.now()) }
+  const next = () => { inFlight.current = false; setI((x) => x + 1); setChosen(null); setRevealed(false); setStartedAt(Date.now()) }
 
   // finalize session record
   useEffect(() => {
     if (!done || sessionId.current === undefined) return
     const r = buildReport(attempts, settings.guessingPenalty)
-    db.sessions.update(sessionId.current, { finishedAt: Date.now(), questionCount: attempts.length, correctCount: r.correct, totalTimeMs: Date.now() - sessionStart.current, byType: Object.fromEntries(Object.entries(r.byType).filter(([, v]) => v.total > 0).map(([k, v]) => [k, { correct: v.correct, total: v.total, timeMs: v.timeMs }])) })
+    db.sessions.update(sessionId.current, { finishedAt: Date.now(), questionCount: attempts.length, correctCount: r.correct, totalTimeMs: Date.now() - sessionStart.current, byType: Object.fromEntries(Object.entries(r.byType).filter(([, v]) => v.total > 0).map(([k, v]) => [k, { correct: v.correct, total: v.total, timeMs: v.timeMs }])) }).catch(() => setSaveFailed(true))
   }, [done, attempts, settings.guessingPenalty])
 
   // keyboard: Enter submits / advances
@@ -98,6 +131,7 @@ export function PracticeSessionPage() {
     const h = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement | null)?.tagName === 'TEXTAREA') return
       if (e.key === 'Enter') {
+        if (inFlight.current && !revealed) return
         if (!revealed && chosen !== null) commit(chosen)
         else if (revealed) next()
       }
@@ -107,17 +141,32 @@ export function PracticeSessionPage() {
   }, [revealed, chosen, commit])
 
   if (!cfg) return null
-  if (!qs) return <p className="p-4 text-sm text-slate-500">Preparing questions…</p>
+  if (error)
+    return (
+      <Card className="mx-auto max-w-lg">
+        <h1 className="font-semibold">Could not start the session</h1>
+        <p className="mt-1 text-sm">{error}</p>
+        <div className="mt-3"><LinkButton to="/practice" variant="secondary">Back to Practice</LinkButton></div>
+      </Card>
+    )
+  if (!qs)
+    return (
+      <div className="space-y-2 p-4 text-sm text-slate-500 dark:text-slate-400">
+        <p>Preparing questions…</p>
+        <Link className="underline" to="/practice">Cancel</Link>
+      </div>
+    )
 
   if (done) {
     const r = buildReport(attempts, settings.guessingPenalty)
     return (
       <div className="space-y-4">
         <PageTitle>Session complete</PageTitle>
+        {saveFailed && <p role="alert" className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100">This session could not be saved, so it will not appear in your analytics.</p>}
         <div className="grid gap-3 sm:grid-cols-3">
-          <Card><div className="text-xs text-slate-500">Score</div><div className="text-2xl font-bold">{r.correct} / {r.total} ({Math.round(r.percent)}%)</div></Card>
-          <Card><div className="text-xs text-slate-500">Average time</div><div className="text-2xl font-bold">{r.total ? Math.round(r.totalTimeMs / r.total / 1000) : 0}s</div></Card>
-          <Card><div className="text-xs text-slate-500">Right but slow</div><div className="text-2xl font-bold">{r.rightButSlow.length}</div></Card>
+          <Card><div className="text-xs text-slate-500 dark:text-slate-400">Score</div><div className="text-2xl font-bold">{r.correct} / {r.total} ({Math.round(r.percent)}%)</div></Card>
+          <Card><div className="text-xs text-slate-500 dark:text-slate-400">Average time</div><div className="text-2xl font-bold">{r.total ? Math.round(r.totalTimeMs / r.total / 1000) : 0}s</div></Card>
+          <Card><div className="text-xs text-slate-500 dark:text-slate-400">Right but slow</div><div className="text-2xl font-bold">{r.rightButSlow.length}</div></Card>
         </div>
         {r.missedRules.length > 0 && (
           <Card>
@@ -134,14 +183,14 @@ export function PracticeSessionPage() {
                 <li key={qq.id} className="border-t border-slate-200 pt-3 first:border-0 first:pt-0 dark:border-slate-800">
                   <QuestionView question={qq} chosen={a?.chosenOptionId ?? null} onChoose={() => {}} reveal disabled index={k} total={qs.length} />
                   <div className="mt-2"><Explanation q={qq} correct={a ? (a.chosenOptionId === null ? null : a.correct) : null} /></div>
-                  {a && <div className="mt-1 text-xs text-slate-500">Time: {fmtTime(a.timeMs)}</div>}
+                  {a && <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">Time: {fmtTime(a.timeMs)}</div>}
                 </li>
               )
             })}
           </ol>
         </Card>
         <div className="flex flex-wrap gap-2">
-          <Button onClick={() => navigate('/practice/session', { state: cfg, replace: true })}>Again</Button>
+          <Button onClick={() => navigate('/practice/session', { state: { ...cfg }, replace: true })}>Again</Button>
           <LinkButton to="/practice" variant="secondary">Change settings</LinkButton>
           <LinkButton to="/analyze" variant="ghost">Analytics</LinkButton>
         </div>
@@ -156,22 +205,22 @@ export function PracticeSessionPage() {
     <div className="mx-auto max-w-3xl space-y-4">
       <div className="flex items-center justify-between gap-2">
         <Button variant="ghost" onClick={() => navigate('/practice')}>Quit</Button>
-        <div className="text-sm tabular-nums text-slate-500">{pct(correctSoFar, answered)} so far</div>
+        <div className="text-sm tabular-nums text-slate-500 dark:text-slate-400">{pct(correctSoFar, answered)} so far</div>
         {cfg.timing === 'per-question' && !revealed ? <Countdown key={q.id} endsAt={startedAt + cfg.secondsPerQuestion * 1000} onExpire={() => commit(chosen)} warnAtMs={10_000} /> : <Stopwatch startedAt={startedAt} />}
       </div>
       <Card>
-        <QuestionView question={q} chosen={chosen} onChoose={(id) => !revealed && setChosen(id)} reveal={revealed} disabled={revealed} index={i} total={qs.length} />
+        <QuestionView question={q} chosen={chosen} onChoose={(id) => !revealed && !committing && setChosen(id)} reveal={revealed} disabled={revealed || committing} index={i} total={qs.length} />
         {revealed && <div className="mt-3"><Explanation q={q} correct={chosen === null ? null : chosen === q.correctOptionId} /></div>}
         <div className="mt-4 flex flex-wrap items-center gap-2">
           {!revealed ? (
             <>
-              <Button onClick={() => commit(chosen)} disabled={chosen === null}>Submit</Button>
-              <Button variant="secondary" onClick={() => commit(null)}>Skip</Button>
+              <Button onClick={() => commit(chosen)} disabled={chosen === null || committing}>Submit</Button>
+              <Button variant="secondary" onClick={() => commit(null)} disabled={committing}>Skip</Button>
             </>
           ) : (
             <Button onClick={next}>{i + 1 < qs.length ? 'Next' : 'Finish'}</Button>
           )}
-          <span className="text-xs text-slate-500">Keys: A–E to choose, Enter to submit</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400">Keys: A–E to choose, Enter to submit</span>
         </div>
       </Card>
       <ScratchPad value={scratch} onChange={setScratch} />

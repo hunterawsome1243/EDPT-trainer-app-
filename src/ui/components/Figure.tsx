@@ -17,16 +17,19 @@ function polygon(kind: Shape['kind'], cx: number, cy: number, r: number): string
   return pts.map((p) => p.map((v) => v.toFixed(1)).join(',')).join(' ')
 }
 
+/**
+ * `size` is the default pixel size; `className` may carry responsive width classes (e.g. "w-16 sm:w-22")
+ * which take precedence, so stimulus rows can shrink on phones without a second render path.
+ */
 export function Figure({ spec, size = 96, className = '', highlight = false }: { spec: FigureSpec; size?: number; className?: string; highlight?: boolean }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '')
   return (
     <svg
       viewBox="0 0 100 100"
-      width={size}
-      height={size}
       role="img"
       aria-label={spec.alt}
-      className={`rounded-md border bg-white ${highlight ? 'border-sky-500' : 'border-slate-300 dark:border-slate-600'} ${className}`}
+      style={{ width: size, height: 'auto' }}
+      className={`aspect-square max-w-full rounded-md border bg-white ${highlight ? 'border-sky-500' : 'border-slate-300 dark:border-slate-600'} ${className}`}
     >
       <defs>
         <pattern id={`h-${uid}`} width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">

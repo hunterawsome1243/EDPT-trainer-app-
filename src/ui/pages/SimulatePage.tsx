@@ -1,21 +1,30 @@
-import { useLiveQuery } from 'dexie-react-hooks'
+import { useState } from 'react'
+import { useSafeLiveQuery as useLiveQuery } from '../hooks/useSafeLiveQuery'
 import { useNavigate } from 'react-router-dom'
 import { db } from '../../db/db'
 import { examSessions } from '../../db/queries'
 import { EXAM, DISCLAIMER } from '../../content/reference'
+import { examTimeLimitMs } from '../../engine/exam'
 import { randomSeed } from '../../generators/rng'
 import { useSettings } from '../hooks/useSettings'
 import { Button, Card, Disclaimer, PageTitle } from '../components/ui'
 
 export function SimulatePage() {
   const navigate = useNavigate()
-  const { settings, update } = useSettings()
+  const { settings, update, storageOk } = useSettings()
+  const [msg, setMsg] = useState('')
   const saved = useLiveQuery(() => db.savedExam.get('current'), [])
   const past = useLiveQuery(examSessions, [], [])
+  const expired = !!saved && Date.now() > saved.startedAt + examTimeLimitMs(saved.length)
   const start = async (length: number) => {
-    await db.savedExam.put({ id: 'current', seed: randomSeed(), length, startedAt: Date.now(), index: 0, answers: {}, scratch: '', noBacktrack: settings.noBacktrack })
-    navigate('/simulate/exam')
+    try {
+      await db.savedExam.put({ id: 'current', seed: randomSeed(), length, startedAt: Date.now(), index: 0, answers: {}, scratch: '', noBacktrack: settings.noBacktrack })
+      navigate('/simulate/exam')
+    } catch {
+      setMsg('Could not start: the browser is blocking local storage, which the exam needs to keep your answers.')
+    }
   }
+  const discard = () => db.savedExam.delete('current').catch(() => setMsg('Could not discard the saved exam.'))
   const lengths = [
     { v: 1, label: 'Full length', desc: `${EXAM.questionCount} questions · ${EXAM.timeLimitMinutes} min` },
     { v: 0.5, label: 'Half length', desc: `${EXAM.questionCount / 2} questions · ${EXAM.timeLimitMinutes / 2} min` },
@@ -27,8 +36,8 @@ export function SimulatePage() {
       {saved && (
         <Card className="border-amber-300 dark:border-amber-800">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div><div className="font-semibold">Exam in progress</div><div className="text-sm text-slate-600 dark:text-slate-400">Started {new Date(saved.startedAt).toLocaleString()} · question {saved.index + 1}. The clock kept running.</div></div>
-            <div className="flex gap-2"><Button onClick={() => navigate('/simulate/exam')}>Resume</Button><Button variant="danger" onClick={() => db.savedExam.delete('current')}>Discard</Button></div>
+            <div><div className="font-semibold">{expired ? 'Time expired on a saved exam' : 'Exam in progress'}</div><div className="text-sm text-slate-600 dark:text-slate-400">Started {new Date(saved.startedAt).toLocaleString()} · question {saved.index + 1}. {expired ? 'The clock ran out; score the answers you gave or discard it.' : 'The clock kept running.'}</div></div>
+            <div className="flex gap-2"><Button onClick={() => navigate('/simulate/exam')}>{expired ? 'Score it' : 'Resume'}</Button><Button variant="danger" onClick={discard}>Discard</Button></div>
           </div>
         </Card>
       )}
@@ -37,13 +46,15 @@ export function SimulatePage() {
           <Card key={l.v} as="div">
             <div className="font-semibold">{l.label}</div>
             <div className="mb-3 text-sm text-slate-600 dark:text-slate-400">{l.desc}</div>
-            <Button onClick={() => start(l.v)} disabled={!!saved}>Start</Button>
+            <Button onClick={() => start(l.v)} disabled={!!saved || !storageOk}>Start</Button>
           </Card>
         ))}
       </div>
+      {!storageOk && <p role="alert" className="text-sm text-amber-800 dark:text-amber-200">Simulations need local storage to keep your answers while the clock runs; your browser is blocking it.</p>}
+      {msg && <p role="alert" className="text-sm text-amber-800 dark:text-amber-200">{msg}</p>}
       <Card>
-        <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-4 w-4" checked={settings.noBacktrack} onChange={(e) => update('noBacktrack', e.target.checked)} /> No backtracking (cannot return to earlier questions)</label>
-        <p className="mt-1 text-xs text-slate-500">Scoring model: {settings.guessingPenalty ? 'wrong answers subtract ¼ point' : 'no penalty for wrong answers'} (change in Settings).</p>
+        <label className="flex items-center gap-2 text-sm"><input id="no-backtrack" type="checkbox" className="h-4 w-4" checked={settings.noBacktrack} onChange={(e) => update('noBacktrack', e.target.checked)} /> No backtracking (cannot return to earlier questions)</label>
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Scoring model: {settings.guessingPenalty ? 'wrong answers subtract ¼ point' : 'no penalty for wrong answers'} (change in Settings).</p>
       </Card>
       {past.length > 0 && (
         <Card>

@@ -5,7 +5,7 @@ import { useSettings } from '../hooks/useSettings'
 import { Button, Card, Disclaimer, Field, PageTitle, inputCls } from '../components/ui'
 
 export function SettingsPage() {
-  const { settings, update } = useSettings()
+  const { settings, update, resetToDefaults, storageOk } = useSettings()
   const [msg, setMsg] = useState('')
   const [exported, setExported] = useState('')
   const [pasted, setPasted] = useState('')
@@ -13,10 +13,20 @@ export function SettingsPage() {
   const fileRef = useRef<HTMLInputElement>(null)
 
   const doExport = async () => {
-    const json = await exportAll()
+    let json: string
+    try {
+      json = await exportAll()
+    } catch (e) {
+      setMsg(`Export failed: ${(e as Error).message}`)
+      return
+    }
     setExported(json)
-    // A download works in a normal browser; inside an embedded viewer it may be blocked, so the
-    // JSON is also shown below with a copy button.
+    // A download works in a normal browser; inside an embedded viewer it is blocked, so the
+    // JSON is also shown below with a copy button. The artifact build skips the attempt.
+    if (import.meta.env.VITE_ARTIFACT) {
+      setMsg('Export ready. Copy the text below and save it somewhere safe.')
+      return
+    }
     try {
       const blob = new Blob([json], { type: 'application/json' })
       const a = document.createElement('a')
@@ -53,10 +63,15 @@ export function SettingsPage() {
     }
   }
   const reset = async () => {
-    await clearAll()
-    await update('onboarded', false)
+    try {
+      await clearAll()
+      resetToDefaults()
+      setExported('')
+      setMsg('All data cleared.')
+    } catch (e) {
+      setMsg(`Could not clear data: ${(e as Error).message}`)
+    }
     setConfirmReset(false)
-    setMsg('All data cleared.')
   }
   return (
     <div className="space-y-4">
@@ -98,6 +113,7 @@ export function SettingsPage() {
       </Card>
       <Card>
         <h2 className="mb-3 font-semibold">Your data</h2>
+        {!storageOk && <p role="alert" className="mb-2 text-sm text-amber-800 dark:text-amber-200">Local storage is blocked in this browser, so settings and progress are not being saved.</p>}
         <p className="mb-3 text-sm text-slate-600 dark:text-slate-400">Everything is stored on this device only. Export to back up or move to another device; import a file or paste an export.</p>
         <div className="flex flex-wrap items-center gap-2">
           <Button onClick={doExport}>Export</Button>

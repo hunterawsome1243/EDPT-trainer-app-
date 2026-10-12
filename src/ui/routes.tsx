@@ -16,11 +16,13 @@ import { AnalyzePage } from './pages/AnalyzePage'
 import { SettingsPage } from './pages/SettingsPage'
 import { ReferencePage } from './pages/ReferencePage'
 import { PlanPage } from './pages/PlanPage'
+import { ErrorPage } from './components/ErrorPage'
 
 export const routes: RouteObject[] = [
   {
     path: '/',
     element: <App />,
+    errorElement: <ErrorPage />,
     children: [
       { index: true, element: <HomePage /> },
       { path: 'learn', element: <LearnPage /> },

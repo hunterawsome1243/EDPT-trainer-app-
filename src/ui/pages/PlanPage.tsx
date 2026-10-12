@@ -1,4 +1,4 @@
-import { useLiveQuery } from 'dexie-react-hooks'
+import { useSafeLiveQuery as useLiveQuery } from '../hooks/useSafeLiveQuery'
 import { Link } from 'react-router-dom'
 import { db } from '../../db/db'
 import { typeAccuracy } from '../../db/queries'
@@ -26,8 +26,8 @@ export function PlanPage() {
         {plan.map((d, i) => (
           <li key={d.date}>
             <Card as="div" className={i === 0 ? 'border-sky-300 dark:border-sky-800' : ''}>
-              <div className="mb-1 flex justify-between text-sm"><span className="font-semibold">{i === 0 ? 'Today' : d.date}</span><span className="text-slate-500">{d.minutes} min</span></div>
-              <ul className="text-sm">{d.items.map((it, k) => <li key={k} className="flex justify-between"><span>{it.label}</span><span className="tabular-nums text-slate-500">{it.minutes} min</span></li>)}</ul>
+              <div className="mb-1 flex justify-between text-sm"><span className="font-semibold">{i === 0 ? 'Today' : d.date}</span><span className="text-slate-500 dark:text-slate-400">{d.minutes} min</span></div>
+              <ul className="text-sm">{d.items.map((it, k) => <li key={k} className="flex justify-between"><span>{it.label}</span><span className="tabular-nums text-slate-500 dark:text-slate-400">{it.minutes} min</span></li>)}</ul>
             </Card>
           </li>
         ))}
