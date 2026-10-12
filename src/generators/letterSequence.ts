@@ -297,14 +297,12 @@ export const LETTER_FAMILIES: RuleFamily[] = [
         terms.push(letterAt(p))
       }
       const lastStep = cycle[(n - 2) % 3]!
-      const nextStep = cycle[(n - 1) % 3]!
-      void nextStep
       return finish(rng, d, {
         terms,
         pattern: `The skips repeat in a cycle: +${cycle.join(', +')}, then again +${cycle.join(', +')}.`,
         howToSpot: 'Write out the gaps; a short repeating group of gaps appears.',
         trap: 'Continuing to grow the skip instead of restarting the cycle.',
-        plausible: (c) => [shift(c, lastStep + 1 - lastStep), shift(c, -1), shift(c, 1), shift(c, lastStep), shift(c, -lastStep)],
+        plausible: (c) => [shift(c, 1), shift(c, -1), shift(c, lastStep), shift(c, -lastStep), shift(c, 2)],
       })
     },
   },

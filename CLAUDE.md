@@ -16,6 +16,7 @@ npm run build      # tsc -b && vite build
 npm run test       # vitest run
 npm run typecheck  # tsc -b
 npm run check      # typecheck + test
+npm run smoke      # Playwright end-to-end run of the built app (build first; CHROMIUM_PATH=... to reuse a browser)
 ```
 
 ## Layout
@@ -29,6 +30,7 @@ src/
   db/           Dexie schema and typed accessors.
   ui/           React components, pages, hooks. The only place that touches the DOM or DB.
   types.ts      Shared types (Question, QuestionType, Attempt, ...).
+scripts/smoke.mjs  Browser smoke test that drives every main flow and fails on console/page errors.
 ```
 
 ## Rules that must hold

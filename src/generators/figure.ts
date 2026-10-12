@@ -217,10 +217,11 @@ export const FIGURE_FAMILIES: RuleFamily[] = [
       const kind = rng.pick<Shape['kind']>(['arrow', 'triangle'])
       const base = rng.pick([0, 30, 60, 120, 150])
       const n = d <= 2 ? 4 : 5
-      // alternate between r and its mirror image (180 - r for horizontal flip of a directional shape)
-      const cells = Array.from({ length: n }, (_, i) => fig([big(kind, { rotation: i % 2 === 0 ? base : 180 - base, fill: i % 2 === 0 ? 'solid' : 'solid' })], `A ${kind}`))
-      const lastRot = (n - 1) % 2 === 0 ? base : 180 - base
-      const cands = [lastRot + 180, base + 90, 180 - base + 90, lastRot + 45, lastRot - 45, 360 - lastRot].map((r) => fig([big(kind, { rotation: r, fill: 'solid' })], `A ${kind}`))
+      // A left-to-right mirror of a shape pointing at angle r points at -r.
+      const mirror = (r: number) => 360 - r
+      const cells = Array.from({ length: n }, (_, i) => fig([big(kind, { rotation: i % 2 === 0 ? base : mirror(base), fill: 'solid' })], `A ${kind}`))
+      const lastRot = (n - 1) % 2 === 0 ? base : mirror(base)
+      const cands = [lastRot + 180, 180 - base, 180 - mirror(base), lastRot + 90, lastRot + 45, lastRot - 45].map((r) => fig([big(kind, { rotation: r, fill: 'solid' })], `A ${kind}`))
       return seq(rng, d, cells, cands, {
         pattern: 'The figure flips left-to-right in each cell, alternating between two mirror images.',
         howToSpot: 'Cells 1 and 3 match, cells 2 and 4 match. A two-cell alternation.',
