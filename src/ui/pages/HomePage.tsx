@@ -44,10 +44,10 @@ export function HomePage() {
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
-          <div className="mb-1 flex items-baseline justify-between"><span className="text-sm font-medium">Readiness</span><span className="text-xs text-slate-500 dark:text-slate-400">{readiness.label}</span></div>
-          <div className="text-3xl font-bold tabular-nums">{readiness.score}<span className="text-base text-slate-500 dark:text-slate-400">/100</span></div>
+          <div className="mb-1 flex items-baseline justify-between"><span className="text-sm font-medium">Readiness</span><span className="text-xs text-slate-600 dark:text-slate-400">{readiness.label}</span></div>
+          <div className="text-3xl font-bold tabular-nums">{readiness.score}<span className="text-base text-slate-600 dark:text-slate-400">/100</span></div>
           <Progress value={readiness.score / 100} label="Readiness" />
-          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Accuracy {Math.round(readiness.accuracy * 100)}% · pacing {Math.round(readiness.pacing * 100)}% · coverage {Math.round(readiness.coverage * 100)}%</p>
+          <p className="mt-2 text-xs text-slate-600 dark:text-slate-400">Accuracy {Math.round(readiness.accuracy * 100)}% · pacing {Math.round(readiness.pacing * 100)}% · coverage {Math.round(readiness.coverage * 100)}%</p>
         </Card>
         <Stat label="Questions answered" value={totalAttempts} hint={`${streak} day streak`} />
         <Stat label="Last simulation" value={lastExam ? `${Math.round((lastExam.correctCount / lastExam.questionCount) * 100)}%` : '–'} hint={lastExam?.estimatedScore ? `est. ~${lastExam.estimatedScore}` : 'No simulation yet'} />
@@ -62,7 +62,7 @@ export function HomePage() {
               {plan.items.map((it, i) => (
                 <li key={i} className="flex items-center justify-between rounded-lg bg-slate-100 px-3 py-2 text-sm dark:bg-slate-800">
                   <span>{it.label}</span>
-                  <span className="text-xs text-slate-500 dark:text-slate-400">{it.minutes} min</span>
+                  <span className="text-xs text-slate-600 dark:text-slate-400">{it.minutes} min</span>
                 </li>
               ))}
             </ul>
@@ -82,7 +82,7 @@ export function HomePage() {
               {readiness.weakest.map((r) => (
                 <li key={`${r.type}/${r.ruleId}`} className="flex justify-between">
                   <span>{QUESTION_TYPE_LABELS[r.type]} · {r.ruleId}</span>
-                  <span className="tabular-nums text-slate-500 dark:text-slate-400">{Math.round((r.correct / r.total) * 100)}% · {Math.round(r.avgSec)}s</span>
+                  <span className="tabular-nums text-slate-600 dark:text-slate-400">{Math.round((r.correct / r.total) * 100)}% · {Math.round(r.avgSec)}s</span>
                 </li>
               ))}
             </ul>
@@ -90,7 +90,7 @@ export function HomePage() {
             <p className="text-sm text-slate-600 dark:text-slate-400">Answer a few questions and your weakest rules will appear here.</p>
           )}
           {trend.length > 1 && (
-            <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">Last 14 days: {trend.reduce((s, d) => s + d.count, 0)} questions, {Math.round((trend.reduce((s, d) => s + d.accuracy * d.count, 0) / trend.reduce((s, d) => s + d.count, 0)) * 100)}% correct.</p>
+            <p className="mt-3 text-xs text-slate-600 dark:text-slate-400">Last 14 days: {trend.reduce((s, d) => s + d.count, 0)} questions, {Math.round((trend.reduce((s, d) => s + d.accuracy * d.count, 0) / trend.reduce((s, d) => s + d.count, 0)) * 100)}% correct.</p>
           )}
         </Card>
       </div>

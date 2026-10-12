@@ -54,7 +54,7 @@ export function SimulatePage() {
       {msg && <p role="alert" className="text-sm text-amber-800 dark:text-amber-200">{msg}</p>}
       <Card>
         <label className="flex items-center gap-2 text-sm"><input id="no-backtrack" type="checkbox" className="h-4 w-4" checked={settings.noBacktrack} onChange={(e) => update('noBacktrack', e.target.checked)} /> No backtracking (cannot return to earlier questions)</label>
-        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Scoring model: {settings.guessingPenalty ? 'wrong answers subtract ¼ point' : 'no penalty for wrong answers'} (change in Settings).</p>
+        <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">Scoring model: {settings.guessingPenalty ? 'wrong answers subtract ¼ point' : 'no penalty for wrong answers'} (change in Settings).</p>
       </Card>
       {past.length > 0 && (
         <Card>

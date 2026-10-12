@@ -29,7 +29,7 @@ export function RulesPage() {
               return (
                 <li key={f.id}>
                   <button type="button" onClick={() => setPreview(g.generate(randomSeed(), 3, f.id))} className="w-full rounded-lg border border-slate-200 bg-white p-3 text-left hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-500 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800">
-                    <div className="flex items-center justify-between"><span className="font-medium">{f.name}</span><span className="text-xs text-slate-500 dark:text-slate-400">from tier {f.minDifficulty}</span></div>
+                    <div className="flex items-center justify-between"><span className="font-medium">{f.name}</span><span className="text-xs text-slate-600 dark:text-slate-400">from tier {f.minDifficulty}</span></div>
                     {summary && <div className="text-sm text-slate-600 dark:text-slate-400">{summary}</div>}
                   </button>
                 </li>

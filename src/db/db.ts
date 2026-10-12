@@ -138,6 +138,18 @@ async function collect() {
   }
 }
 
+/** Short, human wording for a storage error; raw messages from the database layer are not shown. */
+export function describeError(e: unknown): string {
+  const err = e as { name?: string; message?: string } | undefined
+  const text = `${err?.name ?? ''} ${err?.message ?? ''}`
+  if (/IndexedDB|MissingAPI|DatabaseClosed|InvalidState|Quota|Security|OpenFailed|UnknownError|deleteDatabase|transaction/i.test(text)) {
+    return 'local storage is blocked or unavailable in this browser.'
+  }
+  if (/Unrecognised export/i.test(text)) return 'that is not an EDPT Trainer export file.'
+  if (/JSON/i.test(text)) return 'the text is not valid JSON.'
+  return err?.message ? `${err.message}.` : 'an unknown error occurred.'
+}
+
 export async function clearAll(): Promise<void> {
   await db.delete()
   await db.open()

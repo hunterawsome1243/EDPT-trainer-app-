@@ -35,7 +35,7 @@ export function MentalMathPage() {
             {history.map((h) => (
               <li key={h.id} className="flex justify-between border-t border-slate-200 py-1 first:border-0 dark:border-slate-800">
                 <span>{MENTAL_DRILLS.find((d) => d.id === h.drill)?.name ?? h.drill}</span>
-                <span className="tabular-nums text-slate-500 dark:text-slate-400">{h.correct}/{h.total} in {h.seconds}s</span>
+                <span className="tabular-nums text-slate-600 dark:text-slate-400">{h.correct}/{h.total} in {h.seconds}s</span>
               </li>
             ))}
           </ul>
@@ -94,7 +94,7 @@ function Drill({ drill, onDone }: { drill: MentalDrill; onDone: () => void }) {
       </form>
       <div className="mt-2 flex justify-between text-sm">
         <span aria-live="polite" className={last === 'Correct' ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300'}>{last}</span>
-        <span className="tabular-nums text-slate-500 dark:text-slate-400">{score.correct}/{score.total}</span>
+        <span className="tabular-nums text-slate-600 dark:text-slate-400">{score.correct}/{score.total}</span>
       </div>
       <Button variant="ghost" className="mt-2" onClick={onDone}>Quit</Button>
     </Card>

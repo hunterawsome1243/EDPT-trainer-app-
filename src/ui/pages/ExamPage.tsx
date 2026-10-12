@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { db, type SavedExam } from '../../db/db'
+import { db, describeError, type SavedExam } from '../../db/db'
 import { buildExam, examTimeLimitMs } from '../../engine/exam'
 import { buildReport } from '../../engine/scoring'
 import { recordAttempt } from '../../db/queries'
@@ -73,22 +73,26 @@ export function ExamPage() {
       const answers = q ? addTime(exam, q.id) : exam.answers
       // Time used is capped at the limit: a saved exam scored after its clock ran out is not "longer".
       const totalTimeMs = Math.min(Date.now() - exam.startedAt, examTimeLimitMs(exam.length))
-      const sessionId = await db.sessions.add({ mode: 'exam', length: exam.length, startedAt: exam.startedAt, questionCount: questions.length, correctCount: 0, totalTimeMs, byType: {} })
-      const attempts = []
-      for (const qq of questions) {
-        const a = answers[qq.id]
-        attempts.push(await recordAttempt(qq, a?.chosen ?? null, a?.timeMs ?? 0, sessionId))
-      }
-      const r = buildReport(attempts, settings.guessingPenalty)
-      const est = estimateScore(r.percent)
-      await db.sessions.update(sessionId, { finishedAt: Date.now(), correctCount: r.correct, estimatedScore: Math.round((est.low + est.high) / 2), byType: Object.fromEntries(Object.entries(r.byType).filter(([, v]) => v.total > 0).map(([k, v]) => [k, { correct: v.correct, total: v.total, timeMs: v.timeMs }])) })
-      await db.savedExam.delete('current')
+      // One transaction: a failure part-way through rolls everything back, so a retry cannot double-record.
+      const sessionId = await db.transaction('rw', [db.sessions, db.attempts, db.reviews, db.savedExam], async () => {
+        const sid = await db.sessions.add({ mode: 'exam', length: exam.length, startedAt: exam.startedAt, questionCount: questions.length, correctCount: 0, totalTimeMs, byType: {} })
+        const attempts = []
+        for (const qq of questions) {
+          const a = answers[qq.id]
+          attempts.push(await recordAttempt(qq, a?.chosen ?? null, a?.timeMs ?? 0, sid))
+        }
+        const r = buildReport(attempts, settings.guessingPenalty)
+        const est = estimateScore(r.percent)
+        await db.sessions.update(sid, { finishedAt: Date.now(), correctCount: r.correct, estimatedScore: Math.round((est.low + est.high) / 2), byType: Object.fromEntries(Object.entries(r.byType).filter(([, v]) => v.total > 0).map(([k, v]) => [k, { correct: v.correct, total: v.total, timeMs: v.timeMs }])) })
+        await db.savedExam.delete('current')
+        return sid
+      })
       navigate(`/report/${sessionId}`, { replace: true })
     } catch (e) {
       // Let the person retry instead of leaving the exam stuck in "Scoring…".
       submittedRef.current = false
       setSubmitting(false)
-      setSubmitError(`Could not save the result: ${(e as Error).message}. Your answers are still on screen; try again.`)
+      setSubmitError(`Could not save the result: ${describeError(e)} Your answers are still on screen; try again.`)
     }
   }, [exam, q, questions, navigate, settings.guessingPenalty])
 
@@ -104,7 +108,7 @@ export function ExamPage() {
     return () => window.removeEventListener('keydown', h)
   })
 
-  if (!exam || !q) return <p className="p-4 text-sm text-slate-500 dark:text-slate-400">Loading exam…</p>
+  if (!exam || !q) return <p className="p-4 text-sm text-slate-600 dark:text-slate-400">Loading exam…</p>
   const a = exam.answers[q.id]
   const answeredCount = Object.values(exam.answers).filter((x) => x.chosen !== null).length
   const flagged = questions.map((qq, k) => (exam.answers[qq.id]?.flagged ? k : -1)).filter((k) => k >= 0)
@@ -112,7 +116,7 @@ export function ExamPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-3">
-      <div className="sticky z-10 -mx-4 flex items-center justify-between gap-2 border-b border-slate-200 bg-slate-50/95 px-4 py-2 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95" style={{ top: 'env(safe-area-inset-top, 0px)' }}>
+      <div className="sticky z-10 flex items-center justify-between gap-2 border-b border-slate-200 bg-slate-50/95 py-2 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95" style={{ top: 'env(safe-area-inset-top, 0px)', marginLeft: 'calc(-1 * max(1rem, env(safe-area-inset-left, 0px)))', marginRight: 'calc(-1 * max(1rem, env(safe-area-inset-right, 0px)))', paddingLeft: 'max(1rem, env(safe-area-inset-left, 0px))', paddingRight: 'max(1rem, env(safe-area-inset-right, 0px))' }}>
         <div className="text-sm tabular-nums"><span className="font-semibold">{exam.index + 1}</span> / {questions.length} · {answeredCount} answered{unsaved && <span className="ml-2 rounded bg-amber-200 px-1.5 py-0.5 text-xs text-amber-900 dark:bg-amber-900 dark:text-amber-100" title="Progress is not being saved; a reload will lose it">not saved</span>}</div>
         <Countdown endsAt={endsAt} onExpire={submit} />
       </div>
@@ -125,13 +129,13 @@ export function ExamPage() {
           {!isLast && <Button variant="ghost" onClick={() => setConfirm(true)}>Finish early</Button>}
         </div>
         {!exam.noBacktrack && flagged.length > 0 && (
-          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Flagged: {flagged.map((k) => <button key={k} className="mr-1 underline" onClick={() => go(k)}>{k + 1}</button>)}</p>
+          <p className="mt-2 text-xs text-slate-600 dark:text-slate-400">Flagged: {flagged.map((k) => <button key={k} className="mr-1 underline" onClick={() => go(k)}>{k + 1}</button>)}</p>
         )}
       </Card>
       <ScratchPad value={exam.scratch} onChange={(v) => persist({ ...exam, scratch: v })} />
       {!exam.noBacktrack && (
         <details className="text-sm">
-          <summary className="cursor-pointer text-slate-500 dark:text-slate-400">Question map</summary>
+          <summary className="cursor-pointer text-slate-600 dark:text-slate-400">Question map</summary>
           <div className="mt-2 grid grid-cols-10 gap-1 sm:grid-cols-15">
             {questions.map((qq, k) => {
               const ans = exam.answers[qq.id]

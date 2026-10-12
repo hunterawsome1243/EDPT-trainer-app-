@@ -1,5 +1,13 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 
+const listeners = new Set<() => void>()
+
+/** Subscribe to query failures (the settings provider uses this to show the storage banner). */
+export function onQueryError(cb: () => void): () => void {
+  listeners.add(cb)
+  return () => listeners.delete(cb)
+}
+
 /**
  * useLiveQuery that never throws into React: a failing IndexedDB query (blocked storage, a
  * database that closed after opening) resolves to the default value instead of unmounting the app.
@@ -12,6 +20,7 @@ export function useSafeLiveQuery<T, D>(querier: () => Promise<T> | T, deps: unkn
       try {
         return await querier()
       } catch {
+        for (const cb of listeners) cb()
         return defaultValue
       }
     },

@@ -63,7 +63,7 @@ export function LessonPage() {
       </div>
       <section>
         <h2 className="mb-2 text-lg font-semibold">Rules in this module</h2>
-        <ul className="grid gap-1 text-sm sm:grid-cols-2">{lesson.rules.map((r) => <li key={r.id} className="rounded bg-slate-100 px-2 py-1 dark:bg-slate-800"><span className="font-mono text-xs text-slate-500 dark:text-slate-400">{r.id}</span> · {r.summary}</li>)}</ul>
+        <ul className="grid gap-1 text-sm sm:grid-cols-2">{lesson.rules.map((r) => <li key={r.id} className="rounded bg-slate-100 px-2 py-1 dark:bg-slate-800"><span className="font-mono text-xs text-slate-600 dark:text-slate-400">{r.id}</span> · {r.summary}</li>)}</ul>
       </section>
       <MasteryCheck type={lesson.type} tier={tier} next={next} />
     </article>
@@ -82,8 +82,14 @@ function MasteryCheck({ type, tier, next }: { type: QuestionType; tier: number; 
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState('')
   const inFlight = useRef(false)
+  // The tier this run was started at, and whether its unlock has been written: the unlock effect
+  // must run once per completed check, not again when the live `tier` value changes under it.
+  const runTier = useRef(tier)
+  const unlockSaved = useRef(false)
   const d = Math.min(5, tier) as Difficulty
   const start = () => {
+    runTier.current = tier
+    unlockSaved.current = false
     setQs(Array.from({ length: MASTERY_COUNT }, () => generateQuestion(type, randomSeed(), d)))
     setI(0); setChosen(null); setRevealed(false); setResults([]); setStartedAt(Date.now()); setNote(''); inFlight.current = false
   }
@@ -92,9 +98,11 @@ function MasteryCheck({ type, tier, next }: { type: QuestionType; tier: number; 
   const correctCount = results.filter((r) => r === true).length
   const passed = useMemo(() => !!done && correctCount / MASTERY_COUNT >= MASTERY_PASS, [done, correctCount])
   useEffect(() => {
-    if (!done || !passed) return
-    db.lessons.get(type).then((p) => db.lessons.put({ type, tier: Math.min(5, Math.max(p?.tier ?? 1, tier) + 1), readAt: p?.readAt ?? Date.now(), masteryPassedAt: Date.now() })).catch(() => setNote('Passed, but the result could not be saved (storage is unavailable).'))
-  }, [done, passed, type, tier])
+    if (!done || !passed || unlockSaved.current) return
+    unlockSaved.current = true
+    const unlocked = Math.min(5, runTier.current + 1)
+    db.lessons.get(type).then((p) => db.lessons.put({ type, tier: Math.max(p?.tier ?? 1, unlocked), readAt: p?.readAt ?? Date.now(), masteryPassedAt: Date.now() })).catch(() => setNote('Passed, but the result could not be saved (storage is unavailable).'))
+  }, [done, passed, type])
   const submit = async () => {
     if (!q || chosen === null || revealed || inFlight.current) return
     inFlight.current = true
@@ -120,6 +128,7 @@ function MasteryCheck({ type, tier, next }: { type: QuestionType; tier: number; 
         <div className="space-y-3">
           <QuestionView question={q} chosen={chosen} onChoose={(id) => !revealed && !busy && setChosen(id)} reveal={revealed} disabled={revealed || busy} index={i} total={qs!.length} />
           {revealed && <Explanation q={q} correct={chosen === q.correctOptionId} />}
+          {note && <p className="text-sm text-amber-700 dark:text-amber-300">{note}</p>}
           <div className="flex gap-2">
             {!revealed ? <Button onClick={submit} disabled={chosen === null || busy}>Check</Button> : <Button onClick={nextQ}>{i + 1 < qs!.length ? 'Next' : 'Finish'}</Button>}
           </div>

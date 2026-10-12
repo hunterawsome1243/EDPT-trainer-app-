@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { clearAll, exportAll, importAll } from '../../db/db'
+import { clearAll, describeError, exportAll, importAll } from '../../db/db'
 import { CUTOFFS, DISCLAIMER } from '../../content/reference'
 import { useSettings } from '../hooks/useSettings'
 import { Button, Card, Disclaimer, Field, PageTitle, inputCls } from '../components/ui'
@@ -17,7 +17,7 @@ export function SettingsPage() {
     try {
       json = await exportAll()
     } catch (e) {
-      setMsg(`Export failed: ${(e as Error).message}`)
+      setMsg(`Export failed: ${describeError(e)}`)
       return
     }
     setExported(json)
@@ -59,7 +59,7 @@ export function SettingsPage() {
       setMsg(`Import complete (${mode}).`)
       setPasted('')
     } catch (e) {
-      setMsg(`Import failed: ${(e as Error).message}`)
+      setMsg(`Import failed: ${describeError(e)}`)
     }
   }
   const reset = async () => {
@@ -69,7 +69,7 @@ export function SettingsPage() {
       setExported('')
       setMsg('All data cleared.')
     } catch (e) {
-      setMsg(`Could not clear data: ${(e as Error).message}`)
+      setMsg(`Could not clear data: ${describeError(e)}`)
     }
     setConfirmReset(false)
   }

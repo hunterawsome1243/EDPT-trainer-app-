@@ -16,7 +16,7 @@ export function ReportPage() {
   const sid = Number(id)
   const session = useLiveQuery(() => db.sessions.get(sid), [sid])
   const attempts = useLiveQuery(() => db.attempts.where('sessionId').equals(sid).toArray(), [sid], [])
-  if (!session) return <p className="text-sm text-slate-500 dark:text-slate-400">Loading report…</p>
+  if (!session) return <p className="text-sm text-slate-600 dark:text-slate-400">Loading report…</p>
   const r = buildReport(attempts, settings.guessingPenalty)
   const cutoff = CUTOFFS.find((c) => c.afsc === settings.targetAfsc)
   const wrong = attempts.filter((a) => !a.correct)
@@ -32,7 +32,7 @@ export function ReportPage() {
       <Card>
         <h2 className="mb-2 font-semibold">By section</h2>
         <table className="w-full text-sm">
-          <thead><tr className="text-left text-slate-500 dark:text-slate-400"><th className="py-1">Section</th><th className="text-right">Correct</th><th className="text-right">Accuracy</th><th className="text-right">Avg time</th></tr></thead>
+          <thead><tr className="text-left text-slate-600 dark:text-slate-400"><th className="py-1">Section</th><th className="text-right">Correct</th><th className="text-right">Accuracy</th><th className="text-right">Avg time</th></tr></thead>
           <tbody>
             {QUESTION_TYPES.filter((t) => r.byType[t].total > 0).map((t) => {
               const s = r.byType[t]
@@ -59,7 +59,7 @@ export function ReportPage() {
                 <li key={a.id} className="border-t border-slate-200 pt-3 first:border-0 first:pt-0 dark:border-slate-800">
                   <QuestionView question={q} chosen={a.chosenOptionId} onChoose={() => {}} reveal disabled />
                   <div className="mt-2"><Explanation q={q} correct={a.chosenOptionId === null ? null : false} /></div>
-                  <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">Time: {fmtTime(a.timeMs)}</div>
+                  <div className="mt-1 text-xs text-slate-600 dark:text-slate-400">Time: {fmtTime(a.timeMs)}</div>
                 </li>
               )
             })}

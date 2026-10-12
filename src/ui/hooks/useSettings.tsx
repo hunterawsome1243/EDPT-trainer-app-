@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { DEFAULT_SETTINGS, db, loadSettings, saveSetting, type Settings } from '../../db/db'
+import { onQueryError } from './useSafeLiveQuery'
 
 interface Ctx {
   settings: Settings
@@ -30,8 +31,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         if (!cancelled) setLoaded(true)
       }
     })()
+    const off = onQueryError(() => setStorageOk(false))
     return () => {
       cancelled = true
+      off()
     }
   }, [])
   const update = useCallback(async <K extends keyof Settings>(key: K, value: Settings[K]) => {

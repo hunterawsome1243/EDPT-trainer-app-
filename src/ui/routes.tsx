@@ -24,6 +24,10 @@ export const routes: RouteObject[] = [
     element: <App />,
     errorElement: <ErrorPage />,
     children: [
+      {
+        // Pathless layout: a page that throws is replaced inside <main> while the navigation stays usable.
+        errorElement: <ErrorPage />,
+        children: [
       { index: true, element: <HomePage /> },
       { path: 'learn', element: <LearnPage /> },
       { path: 'learn/strategy', element: <StrategyPage /> },
@@ -40,6 +44,8 @@ export const routes: RouteObject[] = [
       { path: 'plan', element: <PlanPage /> },
       { path: 'settings', element: <SettingsPage /> },
       { path: 'reference', element: <ReferencePage /> },
+        ],
+      },
     ],
   },
 ]

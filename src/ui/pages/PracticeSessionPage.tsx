@@ -151,7 +151,7 @@ export function PracticeSessionPage() {
     )
   if (!qs)
     return (
-      <div className="space-y-2 p-4 text-sm text-slate-500 dark:text-slate-400">
+      <div className="space-y-2 p-4 text-sm text-slate-600 dark:text-slate-400">
         <p>Preparing questions…</p>
         <Link className="underline" to="/practice">Cancel</Link>
       </div>
@@ -164,9 +164,9 @@ export function PracticeSessionPage() {
         <PageTitle>Session complete</PageTitle>
         {saveFailed && <p role="alert" className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100">This session could not be saved, so it will not appear in your analytics.</p>}
         <div className="grid gap-3 sm:grid-cols-3">
-          <Card><div className="text-xs text-slate-500 dark:text-slate-400">Score</div><div className="text-2xl font-bold">{r.correct} / {r.total} ({Math.round(r.percent)}%)</div></Card>
-          <Card><div className="text-xs text-slate-500 dark:text-slate-400">Average time</div><div className="text-2xl font-bold">{r.total ? Math.round(r.totalTimeMs / r.total / 1000) : 0}s</div></Card>
-          <Card><div className="text-xs text-slate-500 dark:text-slate-400">Right but slow</div><div className="text-2xl font-bold">{r.rightButSlow.length}</div></Card>
+          <Card><div className="text-xs text-slate-600 dark:text-slate-400">Score</div><div className="text-2xl font-bold">{r.correct} / {r.total} ({Math.round(r.percent)}%)</div></Card>
+          <Card><div className="text-xs text-slate-600 dark:text-slate-400">Average time</div><div className="text-2xl font-bold">{r.total ? Math.round(r.totalTimeMs / r.total / 1000) : 0}s</div></Card>
+          <Card><div className="text-xs text-slate-600 dark:text-slate-400">Right but slow</div><div className="text-2xl font-bold">{r.rightButSlow.length}</div></Card>
         </div>
         {r.missedRules.length > 0 && (
           <Card>
@@ -183,7 +183,7 @@ export function PracticeSessionPage() {
                 <li key={qq.id} className="border-t border-slate-200 pt-3 first:border-0 first:pt-0 dark:border-slate-800">
                   <QuestionView question={qq} chosen={a?.chosenOptionId ?? null} onChoose={() => {}} reveal disabled index={k} total={qs.length} />
                   <div className="mt-2"><Explanation q={qq} correct={a ? (a.chosenOptionId === null ? null : a.correct) : null} /></div>
-                  {a && <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">Time: {fmtTime(a.timeMs)}</div>}
+                  {a && <div className="mt-1 text-xs text-slate-600 dark:text-slate-400">Time: {fmtTime(a.timeMs)}</div>}
                 </li>
               )
             })}
@@ -205,7 +205,7 @@ export function PracticeSessionPage() {
     <div className="mx-auto max-w-3xl space-y-4">
       <div className="flex items-center justify-between gap-2">
         <Button variant="ghost" onClick={() => navigate('/practice')}>Quit</Button>
-        <div className="text-sm tabular-nums text-slate-500 dark:text-slate-400">{pct(correctSoFar, answered)} so far</div>
+        <div className="text-sm tabular-nums text-slate-600 dark:text-slate-400">{pct(correctSoFar, answered)} so far</div>
         {cfg.timing === 'per-question' && !revealed ? <Countdown key={q.id} endsAt={startedAt + cfg.secondsPerQuestion * 1000} onExpire={() => commit(chosen)} warnAtMs={10_000} /> : <Stopwatch startedAt={startedAt} />}
       </div>
       <Card>
@@ -220,7 +220,7 @@ export function PracticeSessionPage() {
           ) : (
             <Button onClick={next}>{i + 1 < qs.length ? 'Next' : 'Finish'}</Button>
           )}
-          <span className="text-xs text-slate-500 dark:text-slate-400">Keys: A–E to choose, Enter to submit</span>
+          <span className="text-xs text-slate-600 dark:text-slate-400">Keys: A–E to choose, Enter to submit</span>
         </div>
       </Card>
       <ScratchPad value={scratch} onChange={setScratch} />

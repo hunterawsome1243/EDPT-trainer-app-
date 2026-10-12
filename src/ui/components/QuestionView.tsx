@@ -34,7 +34,7 @@ export function QuestionView({ question: q, chosen, onChoose, reveal = false, di
   return (
     <div className="space-y-4">
       {index !== undefined && total !== undefined && (
-        <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
+        <div className="text-xs font-medium text-slate-600 dark:text-slate-400">
           Question {index + 1} of {total}
         </div>
       )}
@@ -46,20 +46,23 @@ export function QuestionView({ question: q, chosen, onChoose, reveal = false, di
       <h2 className="text-lg font-semibold">{q.prompt}</h2>
       {q.stem && <p className="font-mono text-xl tracking-wide" aria-label={`Series: ${q.stem}`}>{q.stem}</p>}
       {q.figures && q.figures.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2" aria-label={q.figureLayout === 'analogy' ? 'Analogy figures A, B and C' : 'Figure sequence'}>
+        // A grid sized from the available width, so 3 to 5 stimulus figures plus the answer slot fit one row on a phone.
+        <div
+          role="group"
+          aria-label={q.figureLayout === 'analogy' ? 'Analogy: A is to B as C is to the answer' : 'Figure sequence; the last cell is the answer'}
+          className="grid max-w-xl items-start gap-2"
+          style={{ gridTemplateColumns: `repeat(${q.figures.length + 1}, minmax(0, 1fr))` }}
+        >
           {q.figures.map((f, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <div className="flex flex-col items-center gap-1">
-                <Figure spec={f} size={88} className="w-16! sm:w-22!" />
-                {q.figureLayout === 'analogy' && <span className="text-xs text-slate-500 dark:text-slate-400">{['A', 'B', 'C'][i]}</span>}
-              </div>
-              {q.figureLayout === 'analogy' && i === 0 && <span className="text-slate-400">→</span>}
-              {q.figureLayout === 'analogy' && i === 1 && <span className="px-2 text-slate-400">::</span>}
-              {q.figureLayout === 'analogy' && i === 2 && <span className="text-slate-400">→ ?</span>}
-              {q.figureLayout === 'sequence' && i < q.figures!.length - 1 && <span className="text-slate-400">,</span>}
+            <div key={i} className="flex flex-col items-center gap-1">
+              <Figure spec={f} size={88} className="w-full! max-w-22" />
+              <span className="text-xs text-slate-600 dark:text-slate-400">{q.figureLayout === 'analogy' ? ['A', 'B', 'C'][i] : i + 1}</span>
             </div>
           ))}
-          {q.figureLayout === 'sequence' && <div className="flex aspect-square w-16 items-center justify-center rounded-md border border-dashed border-slate-400 text-2xl text-slate-500 sm:w-22 dark:text-slate-400">?</div>}
+          <div className="flex flex-col items-center gap-1">
+            <div aria-hidden className="flex aspect-square w-full max-w-22 items-center justify-center rounded-md border border-dashed border-slate-500 text-2xl text-slate-600 dark:border-slate-400 dark:text-slate-300">?</div>
+            <span className="text-xs text-slate-600 dark:text-slate-400">{q.figureLayout === 'analogy' ? '?' : q.figures.length + 1}</span>
+          </div>
         </div>
       )}
       <div role="radiogroup" aria-label="Answer options" className={isFigureOptions ? 'grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5' : 'grid gap-2'}>
